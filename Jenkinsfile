@@ -1,67 +1,57 @@
 pipeline {
     agent any
-   
+    
     environment{
         SCANNER_HOME= tool 'sonar-scanner'
     }
 
     stages {
-        stage('git-checkout') {
+        stage('Git Checkout') {
             steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/jaiswaladi246/to-do-app.git'
+                git branch: 'main', url: 'https://github.com/EmAdd9/Demo-React-To-Do-App.git'
             }
         }
-
-    stage('Sonar Analysis') {
+        stage('SonarQube Analysis') {
             steps {
-                   sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.url=URL_OF_SONARQUBE -Dsonar.login=TOKEN_OF_SONARQUBE -Dsonar.projectName=to-do-app \
-                   -Dsonar.sources=. \
-                   -Dsonar.projectKey=to-do-app '''
-               }
-            }
-           
-		stage('OWASP Dependency Check') {
-            steps {
-               dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+                withSonarQubeEnv('sonar-server') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Demo-React-To-Do-App\
+                    -Dsonar.projectKey=Demo-React-To-Do-App \
+                    -Dsonar.sources=. '''
+                    
+                }
+                
             }
         }
-     
-
-         stage('Docker Build') {
+        stage('OWASP Dependency Check') {
             steps {
-               script{
-                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
-                    sh "docker build -t  todoapp:latest -f docker/Dockerfile . "
-                    sh "docker tag todoapp:latest username/todoapp:latest "
-                 }
-               }
+                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'owasp'
+                     dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
-
-        stage('Docker Push') {
+        stage('Docker Build & Push') {
             steps {
-               script{
-                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
-                    sh "docker push  username/todoapp:latest "
-                 }
-               }
+                script {
+                    withDockerRegistry(credentialsId: '922378b9-2188-4bee-ae19-7a1407df0a66', toolName: 'docker') {
+                        sh "docker build -t app -f backend/Dockerfile ."
+                        sh "docker tag app username/react-to-do-app:latest"
+                        sh "docker push username/react-to-do-app:latest"
+                    }
+                }
             }
         }
-        stage('trivy') {
+        stage('Trivy Docker Scan') {
             steps {
-               sh " trivy username/todoapp:latest"
+                sh "trivy image username/react-to-do-app:latest"
             }
         }
-		stage('Deploy to Docker') {
+        stage('Docker Deployment') {
             steps {
-               script{
-                   withDockerRegistry(credentialsId: '9ea0c4b0-721f-4219-be62-48a976dbeec0') {
-                    sh "docker run -d --name to-do-app -p 4000:4000 username/todoapp:latest "
-                 }
-               }
+                script {
+                    withDockerRegistry(credentialsId: '922378b9-2188-4bee-ae19-7a1407df0a66', toolName: 'docker') {
+                        sh "docker run -d --name reactapp -p 4000:4000 username/react-to-do-app:latest"
+                    }
+                }
             }
         }
-
     }
 }
