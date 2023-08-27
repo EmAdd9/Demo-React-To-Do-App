@@ -1,4 +1,4 @@
-# Trivy Scan Report
+# Trivy Scan Report 
 ==================================================
 sudebdocker/react-to-do-app:latest (alpine 3.12.9)
 ==================================================
