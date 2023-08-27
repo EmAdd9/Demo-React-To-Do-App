@@ -1,3 +1,5 @@
+# Trivy Scan Report
+==================================================
 sudebdocker/react-to-do-app:latest (alpine 3.12.9)
 ==================================================
 Total: 6 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 5, CRITICAL: 1)
